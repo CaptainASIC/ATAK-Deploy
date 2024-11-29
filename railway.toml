@@ -1,0 +1,44 @@
+# Railway deployment configuration
+
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "alembic upgrade head && python src/main.py"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 3
+
+[deploy.envs]
+APP_ENV = "production"
+DEBUG = "False"
+
+# Database configuration will be automatically injected by Railway
+# POSTGRES_URL will be converted to DATABASE_URL in the application
+
+[database]
+databaseName = "atak_db"
+postgresMajorVersion = 15
+
+# Enable automatic database backups
+[database.backup]
+enabled = true
+schedule = "0 0 * * *"  # Daily backup at midnight UTC
+retentionPeriod = "7d"  # Keep backups for 7 days
+
+# Redis configuration (optional)
+[redis]
+enabled = true
+version = "7"
+
+# Service dependencies
+[service.dependencies]
+database = "postgresql"
+cache = "redis"
+
+# Resource allocation
+[service.resources]
+cpu = 1024
+memory = 2048

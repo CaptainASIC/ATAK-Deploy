@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - atak_certs:/opt/tak/certs
+    environment:
+      - APP_ENV=development
+      - DEBUG=True
+      - DATABASE_URL=postgresql://atak_user:atak_password@db:5432/atak_db
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - SECRET_KEY=development_secret_key
+      - JWT_SECRET_KEY=development_jwt_secret
+      - ATAK_SERVER_HOST=localhost
+      - ATAK_SERVER_PORT=8089
+    depends_on:
+      - db
+      - redis
+    networks:
+      - atak_network
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=atak_user
+      - POSTGRES_PASSWORD=atak_password
+      - POSTGRES_DB=atak_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - atak_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atak_user -d atak_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - atak_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  atak_certs:
+
+networks:
+  atak_network:
+    driver: bridge
